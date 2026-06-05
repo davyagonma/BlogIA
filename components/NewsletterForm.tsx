@@ -33,7 +33,7 @@ export default function NewsletterForm() {
           cursor: "pointer",
         }}
       >
-        S'inscrire
+        S&apos;inscrire
       </button>
     </form>
   );
