@@ -4,14 +4,17 @@
 
 <!-- Format : slug | titre | branche | date génération -->
 <!-- Exemple : mon-nouvel-article | Titre de l'article | auto/article-mon-nouvel-article | 2026-06-05T14:00:00Z -->
+great-american-ai-act-supervision-ia | Great American AI Act : Washington encadre l'IA | cursor/nouvel-article-brouillon-ba50 | 2026-06-05T17:25:00Z
 
 ## Dernière catégorie utilisée
 
 <!-- intelligence-artificielle | developpement | cybersecurite | tech-innovation | outils-productivite -->
+intelligence-artificielle
 
 ## Sujets déjà couverts récemment
 
 <!-- Liste de slugs ou titres pour éviter les doublons -->
+great-american-ai-act-supervision-ia
 
 ## Validations déjà traitées
 
