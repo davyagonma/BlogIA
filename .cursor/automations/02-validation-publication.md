@@ -8,7 +8,7 @@
 |-----------|--------|
 | **Nom** | BlogIA — Validation & publication |
 | **Déclencheur** | Planifié — toutes les 15 minutes (`*/15 * * * *`) |
-| **Dépôt** | `BOVO-Digital/BlogIA` — branche `main` |
+| **Dépôt** | `davyagonma/BlogIA` — branche `main` |
 | **Outils** | Open pull request, Memories, MCP Telegram |
 | **Modèle** | Recommandé : modèle le plus récent disponible |
 

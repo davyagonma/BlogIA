@@ -8,7 +8,7 @@
 |-----------|--------|
 | **Nom** | BlogIA — Génération article horaire |
 | **Déclencheur** | Planifié — toutes les heures (`0 * * * *`) |
-| **Dépôt** | `BOVO-Digital/BlogIA` — branche `main` |
+| **Dépôt** | `davyagonma/BlogIA` — branche `main` |
 | **Outils** | Open pull request, Memories, MCP Telegram |
 | **Modèle** | Recommandé : modèle le plus récent disponible |
 
@@ -48,21 +48,23 @@ Génère UN nouvel article, crée une PR sur GitHub, et envoie un message Telegr
    - `"draft": true` — OBLIGATOIRE tant que non validé
    - `"featured": false`
 
-4. **Git**
-   - Branche : `auto/article-{slug}`
-   - Commit : `feat(content): brouillon article {slug}`
-   - Ouvre une PR vers `main` avec titre : `[Brouillon] {title}`
+4. **Mémoire** (AVANT le commit, pour tout pousser d'un coup)
+   - Ajoute dans `.cursor/MEMORIES.md` : slug, titre, branche, timestamp
+   - Mets à jour la dernière catégorie utilisée et la liste des sujets récents
 
-5. **Telegram** (outil MCP `telegram-api-mcp`)
+5. **Git** (ordre IMPÉRATIF — pousser AVANT d'ouvrir la PR)
+   - Crée et bascule sur la branche : `git checkout -b auto/article-{slug}`
+   - Ajoute les fichiers : `git add content/articles/{slug}.json .cursor/MEMORIES.md`
+   - Commit : `git commit -m "feat(content): brouillon article {slug}"`
+   - **Pousse la branche sur le remote** : `git push -u origin auto/article-{slug}`
+   - SEULEMENT APRÈS le push réussi, ouvre une PR vers `main` avec titre : `[Brouillon] {title}`
+   - Si l'outil « Open pull request » échoue avec « branch is not pushed », c'est que le `git push` n'a pas été fait : pousse la branche puis réessaie
+
+6. **Telegram** (outil MCP `telegram-api-mcp`)
    - Envoie le message de validation au chat `TELEGRAM_DEFAULT_CHAT_ID`
    - En mode meta : `telegram_call` avec `method: "sendMessage"`, params `{ chat_id, text }`
    - Format exact défini dans `.cursor/rules/article-automation.mdc`
    - Inclus le lien de la PR GitHub
-
-6. **Mémoire**
-   - Ajoute dans MEMORIES.md : slug, titre, branche, timestamp
-   - Mets à jour la dernière catégorie utilisée
-   - Ajoute le sujet à la liste des sujets récents
 
 ## Contraintes
 - Ne JAMAIS mettre `"draft": false` — la publication est gérée par l'automatisation de validation
