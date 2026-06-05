@@ -1,0 +1,64 @@
+---
+description: Workflow d'automatisation — génération horaire d'articles et validation Telegram
+alwaysApply: false
+---
+
+# Automatisation BlogIA — Génération & Publication
+
+## Workflow en 2 automatisations
+
+1. **Génération horaire** — crée un article en brouillon, ouvre une PR, envoie un résumé sur Telegram
+2. **Validation** — lit les réponses Telegram, publie (`draft: false`) ou refuse l'article
+
+## Règles de génération
+
+- Toujours créer l'article avec `"draft": true` jusqu'à validation explicite
+- Fichier : `content/articles/{slug}.json` — le nom de fichier = le slug
+- Respecter `.cursor/rules/article-json-schema.mdc` et `.cursor/rules/content-editorial.mdc`
+- Minimum 400 mots de contenu HTML, 3 à 5 sections `<h2>`
+- `author.name` : alterner entre les auteurs existants du blog
+- `coverImage` : URL Unsplash pertinente (format `?w=900&q=80`)
+- `readingTime` : ~1 min pour 200 mots
+- `publishedAt` : date/heure ISO 8601 UTC du moment de génération
+- Ne pas dupliquer un sujet déjà traité (consulter `content/articles/` et MEMORIES.md)
+
+## Rotation des catégories
+
+Alterner entre les 5 catégories dans cet ordre, en reprenant après la dernière mémorisée :
+`intelligence-artificielle` → `developpement` → `cybersecurite` → `tech-innovation` → `outils-productivite`
+
+## Telegram (Bot API)
+
+- Bot : `t.me/blogia01_bot`, serveur MCP `telegram-api-mcp` (mode meta activé)
+- Envoi : `sendMessage` vers `TELEGRAM_DEFAULT_CHAT_ID`
+- Lecture des réponses : `getUpdates`
+- Setup détaillé : `.cursor/automations/00-setup-telegram.md`
+
+## Format du message Telegram (génération)
+
+```
+📝 Nouvel article BlogIA — EN ATTENTE DE VALIDATION
+
+Titre : {title}
+Catégorie : {category}
+Slug : {slug}
+Extrait : {excerpt}
+Temps de lecture : {readingTime} min
+PR : {url}
+
+Pour valider : répondez VALIDÉ {slug}
+Pour refuser : répondez REFUSÉ {slug}
+```
+
+## Commandes de validation Telegram
+
+| Commande | Action |
+|----------|--------|
+| `VALIDÉ {slug}` | Passer `draft: false`, merger la PR sur `main` |
+| `REFUSÉ {slug}` | Supprimer le fichier JSON, fermer la PR sans merger |
+
+## Publication
+
+- Un article est visible sur le site uniquement quand `"draft": false`
+- Après validation : mettre à jour `publishedAt` à l'heure de publication
+- Confirmer sur Telegram : `✅ Article « {title} » publié sur BlogIA`

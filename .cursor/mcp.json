@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "telegram": {
+      "command": "npx",
+      "args": ["-y", "telegram-api-mcp"],
+      "env": {
+        "TELEGRAM_BOT_TOKEN": "${TELEGRAM_BOT_TOKEN}",
+        "TELEGRAM_DEFAULT_CHAT_ID": "${TELEGRAM_CHAT_ID}",
+        "TELEGRAM_META_MODE": "true"
+      }
+    }
+  }
+}
