@@ -2,8 +2,8 @@
 
 ## Articles en attente de validation
 
-<!-- Format : slug | titre | branche | date génération -->
-<!-- Exemple : mon-nouvel-article | Titre de l'article | auto/article-mon-nouvel-article | 2026-06-05T14:00:00Z -->
+<!-- Format : slug | titre | URL de la PR | date génération -->
+<!-- Exemple : mon-nouvel-article | Titre de l'article | https://github.com/davyagonma/BlogIA/pull/12 | 2026-06-05T14:00:00Z -->
 
 ## Dernière catégorie utilisée
 

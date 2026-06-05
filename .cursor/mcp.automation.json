@@ -4,7 +4,7 @@
       "command": "npx",
       "args": ["-y", "telegram-bot-mcp-server"],
       "env": {
-        "TELEGRAM_BOT_API_TOKEN": "8847908337:AAF8EfCMFMvAj_8OyfcCQXX-OLzed8VOXxY"
+        "TELEGRAM_BOT_API_TOKEN": "REMPLACER_PAR_VOTRE_TOKEN_BOT"
       }
     }
   }

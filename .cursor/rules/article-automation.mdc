@@ -27,11 +27,19 @@ alwaysApply: false
 Alterner entre les 5 catégories dans cet ordre, en reprenant après la dernière mémorisée :
 `intelligence-artificielle` → `developpement` → `cybersecurite` → `tech-innovation` → `outils-productivite`
 
+## Git dans les automatisations cloud
+
+- Cursor prépare une **branche dédiée** (ex: `cursor/...`) pour chaque run. Ne JAMAIS créer une nouvelle branche.
+- Committer sur la branche courante puis `git push origin HEAD`, et seulement ensuite ouvrir la PR.
+- La validation retrouve la PR par son titre `[Brouillon] ...` (ou le slug), pas par un nom de branche fixe.
+
 ## Telegram (Bot API)
 
-- Bot : `t.me/blogia01_bot`, serveur MCP `telegram-api-mcp` (mode meta activé)
-- Envoi : `sendMessage` vers `TELEGRAM_DEFAULT_CHAT_ID`
-- Lecture des réponses : `getUpdates`
+- Bot : `t.me/blogia01_bot`, serveur MCP `telegram-bot-mcp-server`
+- Env : `TELEGRAM_BOT_API_TOKEN`
+- Envoi : outil `send-message` avec `chatId: "5530576033"` et `text`
+- Lecture des réponses : ce serveur n'expose PAS `getUpdates` → la validation
+  passe par un déclencheur **Webhook** (voir `.cursor/automations/02-validation-publication.md`)
 - Setup détaillé : `.cursor/automations/00-setup-telegram.md`
 
 ## Format du message Telegram (génération)

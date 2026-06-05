@@ -53,18 +53,33 @@ Vérifiez la connexion :
 cursor agent mcp list-tools telegram
 ```
 
+Test direct du serveur (envoi réel) :
+
+```bash
+set -a && . ./.env && set +a
+{ printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}'; sleep 8; \
+  printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}'; \
+  printf '%s\n' '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"send-message","arguments":{"chatId":"'$TELEGRAM_CHAT_ID'","text":"Test MCP OK"}}}'; sleep 5; } \
+  | TELEGRAM_BOT_API_TOKEN="$TELEGRAM_BOT_TOKEN" npx -y telegram-bot-mcp-server
+```
+
 ## 5. Configurer les automatisations cloud
 
 Dans [cursor.com/automations](https://cursor.com/automations), pour CHAQUE automatisation,
-ajoutez le serveur MCP Telegram avec les variables d'environnement :
+ajoutez le serveur MCP Telegram :
+
+- **Command** : `npx -y telegram-bot-mcp-server`
+- **Env** :
 
 | Variable | Valeur |
 |----------|--------|
-| `TELEGRAM_BOT_TOKEN` | le nouveau token |
-| `TELEGRAM_DEFAULT_CHAT_ID` | votre chat ID |
-| `TELEGRAM_META_MODE` | `true` |
+| `TELEGRAM_BOT_API_TOKEN` | votre token de bot |
 
-Commande : `npx -y telegram-api-mcp`
-
+> ⚠️ Le paquet est bien `telegram-bot-mcp-server` (testé, fonctionne).
+> `telegram-api-mcp` n'existe pas sur npm et `@node2flow/telegram-bot-mcp` crashe.
+>
+> Le `chatId` (`5530576033`) est passé directement dans l'appel `send-message`,
+> pas via une variable d'environnement.
+>
 > Les automatisations cloud n'ont PAS accès à votre `.env` local : les variables
 > doivent être saisies dans l'UI de l'automatisation.

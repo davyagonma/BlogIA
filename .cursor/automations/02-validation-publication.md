@@ -12,20 +12,34 @@
 | **Outils** | Open pull request, Memories, MCP Telegram |
 | **Modèle** | Recommandé : modèle le plus récent disponible |
 
-### MCP Telegram (Bot API)
+### Lecture des réponses Telegram
 
-Serveur : `telegram-api-mcp`. Lecture des réponses via `getUpdates` (mode meta : `telegram_call` avec `method: "getUpdates"`).
-Variables MCP : `TELEGRAM_BOT_TOKEN`, `TELEGRAM_DEFAULT_CHAT_ID`, `TELEGRAM_META_MODE=true`.
+⚠️ Le serveur `telegram-bot-mcp-server` envoie (`send-message`) mais n'expose PAS
+`getUpdates`. Pour LIRE les commandes `VALIDÉ`/`REFUSÉ`, deux approches :
 
-### Alternative : déclencheur Webhook (publication instantanée)
-
-Au lieu du cron, configurez un **Webhook** Telegram pointant vers l'URL webhook de l'automatisation :
+**Approche A — Cron + curl `getUpdates` (simple)**
+Déclencheur planifié (`*/15 * * * *`). Le prompt lit les messages via un appel shell :
 
 ```bash
-curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<URL_WEBHOOK_AUTOMATISATION>"
+curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates?offset=<dernier_update_id+1>"
 ```
 
-Chaque réponse `VALIDÉ {slug}` déclenche alors immédiatement l'automatisation.
+Le token doit être disponible au run (variable d'environnement de l'automatisation
+ou inclus dans le prompt). Suivre le dernier `update_id` traité dans MEMORIES.md.
+
+**Approche B — Webhook (instantané)**
+Pointer le bot vers l'URL webhook de l'automatisation :
+
+```bash
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<URL_WEBHOOK>"
+```
+
+⚠️ Telegram n'envoie pas l'API key Cursor ; un petit relais peut être nécessaire
+pour authentifier l'appel webhook. Plus complexe mais publication immédiate.
+
+### Envoi des confirmations
+Outil MCP `send-message` (serveur `telegram-bot-mcp-server`, env `TELEGRAM_BOT_API_TOKEN`),
+`chatId: "5530576033"`.
 
 ---
 
@@ -39,14 +53,15 @@ Vérifier les messages Telegram récents pour des commandes de validation, puis 
 
 ## Étapes obligatoires
 
-1. **Lire les messages Telegram**
-   - Utilise l'outil MCP `getUpdates` (mode meta : `telegram_call` method `getUpdates`)
+1. **Lire les messages Telegram** (via curl `getUpdates`, voir en-tête du fichier)
+   - Récupère les updates : `curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates?offset=<dernier_update_id+1>"`
    - Cherche les messages contenant `VALIDÉ {slug}` ou `REFUSÉ {slug}` (insensible à la casse)
    - Ignore les messages déjà traités (consulte MEMORIES.md section « traités »)
    - Note le dernier `update_id` traité dans MEMORIES.md pour éviter les doublons
 
 2. **Pour chaque commande VALIDÉ {slug}**
-   - Vérifie que le fichier `content/articles/{slug}.json` existe (dans la PR ou sur la branche `auto/article-{slug}`)
+   - Retrouve la PR ouverte correspondante (titre `[Brouillon] ...` contenant le slug, ou via le fichier `content/articles/{slug}.json`)
+   - Récupère/checkout la branche de cette PR (ne crée pas de nouvelle branche)
    - Modifie le JSON :
      - `"draft": false`
      - `"publishedAt"` = maintenant (ISO 8601 UTC)
@@ -57,8 +72,9 @@ Vérifier les messages Telegram récents pour des commandes de validation, puis 
    - Ajoute le slug à la section « traités » avec timestamp
 
 3. **Pour chaque commande REFUSÉ {slug}**
-   - Supprime `content/articles/{slug}.json`
+   - Retrouve la PR ouverte correspondante (titre `[Brouillon] ...` contenant le slug)
    - Ferme la PR sans merger (commentaire : « Refusé par l'éditeur via Telegram »)
+   - Le fichier `content/articles/{slug}.json` n'étant que sur la branche de la PR, il disparaît avec elle ; s'il a atterri sur `main`, supprime-le
    - Envoie sur Telegram : `❌ Article « {slug} » refusé et supprimé`
    - Retire l'entrée de MEMORIES.md
 

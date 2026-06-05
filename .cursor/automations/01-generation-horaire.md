@@ -14,10 +14,12 @@
 
 ### MCP Telegram (Bot API)
 
-Serveur : `telegram-api-mcp` (voir `.cursor/mcp.json` et `.cursor/automations/00-setup-telegram.md`).
-Le bot `t.me/blogia01_bot` envoie les messages via l'outil `sendMessage` (mode meta : `telegram_call` avec `method: "sendMessage"`).
+Serveur : `telegram-bot-mcp-server` (voir `.cursor/mcp.json` et `.cursor/automations/00-setup-telegram.md`).
+Le bot `t.me/blogia01_bot` envoie les messages via l'outil `send-message` (params `chatId`, `text`).
 
-Variables MCP à définir dans l'UI de l'automatisation : `TELEGRAM_BOT_TOKEN`, `TELEGRAM_DEFAULT_CHAT_ID`, `TELEGRAM_META_MODE=true`.
+Config MCP à définir dans l'UI de l'automatisation :
+- Command : `npx -y telegram-bot-mcp-server`
+- Env : `TELEGRAM_BOT_API_TOKEN` = ton token de bot
 
 ---
 
@@ -53,22 +55,32 @@ Génère UN nouvel article, crée une PR sur GitHub, et envoie un message Telegr
    - Mets à jour la dernière catégorie utilisée et la liste des sujets récents
 
 5. **Git** (ordre IMPÉRATIF — pousser AVANT d'ouvrir la PR)
-   - Crée et bascule sur la branche : `git checkout -b auto/article-{slug}`
+   - ⚠️ NE CRÉE PAS de nouvelle branche. Cursor a déjà préparé une branche dédiée
+     (ex: `cursor/...`). Travaille sur la branche actuellement active.
+   - Vérifie la branche courante : `git branch --show-current`
    - Ajoute les fichiers : `git add content/articles/{slug}.json .cursor/MEMORIES.md`
    - Commit : `git commit -m "feat(content): brouillon article {slug}"`
-   - **Pousse la branche sur le remote** : `git push -u origin auto/article-{slug}`
+   - **Pousse la branche courante sur le remote** : `git push origin HEAD`
    - SEULEMENT APRÈS le push réussi, ouvre une PR vers `main` avec titre : `[Brouillon] {title}`
-   - Si l'outil « Open pull request » échoue avec « branch is not pushed », c'est que le `git push` n'a pas été fait : pousse la branche puis réessaie
+   - Si l'outil « Open pull request » indique « Expected remote branch: cursor/... »,
+     c'est que tu as changé de branche : reviens sur la branche désignée et pousse-la
 
-6. **Telegram** (outil MCP `telegram-api-mcp`)
-   - Envoie le message de validation au chat `TELEGRAM_DEFAULT_CHAT_ID`
-   - En mode meta : `telegram_call` avec `method: "sendMessage"`, params `{ chat_id, text }`
-   - Format exact défini dans `.cursor/rules/article-automation.mdc`
-   - Inclus le lien de la PR GitHub
+6. **Telegram — ÉTAPE FINALE OBLIGATOIRE** (serveur MCP `telegram-bot-mcp-server`)
+   - Cette étape est OBLIGATOIRE. La tâche n'est PAS terminée tant que le message
+     Telegram n'a pas été envoyé avec succès.
+   - Appelle l'outil MCP **`send-message`** avec :
+     - `chatId`: `"5530576033"`
+     - `text`: le message au format ci-dessous
+   - Le `text` suit le format exact défini dans `.cursor/rules/article-automation.mdc`
+     (inclure titre, catégorie, slug, extrait, temps de lecture, lien de la PR,
+     et les consignes `VALIDÉ {slug}` / `REFUSÉ {slug}`).
+   - Si l'outil `send-message` n'est pas disponible ou échoue, NE termine PAS
+     silencieusement : signale l'échec explicitement dans ta réponse finale.
 
 ## Contraintes
 - Ne JAMAIS mettre `"draft": false` — la publication est gérée par l'automatisation de validation
 - Ne pas merger la PR
-- Si tu ne trouves pas de sujet pertinent, envoie un message Telegram expliquant pourquoi et termine sans créer d'article
+- Si tu ne trouves pas de sujet pertinent, envoie quand même un message Telegram (via `send-message`) expliquant pourquoi, puis termine sans créer d'article
 - Vérifie que le JSON est valide avant de committer
+- Ordre des étapes : contexte → sujet → rédaction → mémoire → git/PR → **Telegram (obligatoire)**
 ```
