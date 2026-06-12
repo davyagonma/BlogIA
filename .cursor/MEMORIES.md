@@ -15,5 +15,10 @@
 
 ## Validations déjà traitées
 
-<!-- Format : slug | VALIDÉ ou REFUSÉ | timestamp -->
+<!-- Format : slug | VALIDÉ ou REFUSÉ | update_id | timestamp -->
 <!-- Évite de republier ou re-traiter la même commande Telegram -->
+
+## Dernier update_id Telegram traité
+
+<!-- Nombre entier — utilisé par curl getUpdates offset -->
+<!-- Exemple : 346622866 -->

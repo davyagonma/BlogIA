@@ -12,34 +12,29 @@
 | **Outils** | Open pull request, Memories, MCP Telegram |
 | **Modèle** | Recommandé : modèle le plus récent disponible |
 
-### Lecture des réponses Telegram
+### MCP Telegram (envoi uniquement)
 
-⚠️ Le serveur `telegram-bot-mcp-server` envoie (`send-message`) mais n'expose PAS
-`getUpdates`. Pour LIRE les commandes `VALIDÉ`/`REFUSÉ`, deux approches :
+- Command : `npx -y telegram-bot-mcp-server`
+- Env : `TELEGRAM_BOT_API_TOKEN` = ton token
 
-**Approche A — Cron + curl `getUpdates` (simple)**
-Déclencheur planifié (`*/15 * * * *`). Le prompt lit les messages via un appel shell :
+⚠️ Ce serveur expose **`send-message`** mais PAS `getUpdates`.
+La **lecture** des commandes se fait via **curl** dans le shell (voir prompt).
 
-```bash
-curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates?offset=<dernier_update_id+1>"
-```
+### Token accessible au shell (OBLIGATOIRE)
 
-Le token doit être disponible au run (variable d'environnement de l'automatisation
-ou inclus dans le prompt). Suivre le dernier `update_id` traité dans MEMORIES.md.
+Le token MCP n'est PAS disponible dans le shell du run cloud.
+Tu dois **dupliquer** le token dans les variables d'environnement de l'automatisation :
 
-**Approche B — Webhook (instantané)**
-Pointer le bot vers l'URL webhook de l'automatisation :
+| Variable | Valeur | Usage |
+|----------|--------|-------|
+| `TELEGRAM_BOT_API_TOKEN` | ton token | MCP `send-message` |
+| `TELEGRAM_BOT_TOKEN` | **même token** | curl `getUpdates` dans le shell |
 
-```bash
-curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<URL_WEBHOOK>"
-```
+Dans l'UI Cursor Automations → section **Environment variables** (ou Secrets),
+ajoute `TELEGRAM_BOT_TOKEN` en plus de la config MCP.
 
-⚠️ Telegram n'envoie pas l'API key Cursor ; un petit relais peut être nécessaire
-pour authentifier l'appel webhook. Plus complexe mais publication immédiate.
-
-### Envoi des confirmations
-Outil MCP `send-message` (serveur `telegram-bot-mcp-server`, env `TELEGRAM_BOT_API_TOKEN`),
-`chatId: "5530576033"`.
+Si l'UI ne propose pas de variables shell, remplace `__TELEGRAM_BOT_TOKEN__`
+dans le prompt ci-dessous par ton token avant de sauvegarder l'automatisation.
 
 ---
 
@@ -49,41 +44,62 @@ Outil MCP `send-message` (serveur `telegram-bot-mcp-server`, env `TELEGRAM_BOT_A
 Tu es l'agent de validation éditoriale de BlogIA.
 
 ## Mission
-Vérifier les messages Telegram récents pour des commandes de validation, puis publier ou refuser les articles en brouillon correspondants.
+Lire les commandes Telegram (VALIDÉ / REFUSÉ), puis publier ou refuser les articles en brouillon.
+
+## Règles Telegram
+
+- LECTURE : uniquement via curl + API Bot (PAS de MCP, PAS de getUpdates MCP)
+- ENVOI : uniquement via outil MCP `send-message` (chatId: "5530576033", text: "...")
+- Token pour curl : utilise $TELEGRAM_BOT_TOKEN si défini, sinon __TELEGRAM_BOT_TOKEN__
 
 ## Étapes obligatoires
 
-1. **Lire les messages Telegram** (via curl `getUpdates`, voir en-tête du fichier)
-   - Récupère les updates : `curl -s "https://api.telegram.org/bot<TOKEN>/getUpdates?offset=<dernier_update_id+1>"`
-   - Cherche les messages contenant `VALIDÉ {slug}` ou `REFUSÉ {slug}` (insensible à la casse)
-   - Ignore les messages déjà traités (consulte MEMORIES.md section « traités »)
-   - Note le dernier `update_id` traité dans MEMORIES.md pour éviter les doublons
+0. **Vérifier le token**
+   - Exécute : `test -n "$TELEGRAM_BOT_TOKEN" && echo "TOKEN_OK" || echo "TOKEN_MISSING"`
+   - Si TOKEN_MISSING et que __TELEGRAM_BOT_TOKEN__ n'est pas remplacé, envoie via MCP
+     send-message : "⚠️ Config manquante : TELEGRAM_BOT_TOKEN non défini dans l'automatisation."
+     puis STOP.
+
+1. **Lire les messages Telegram** (curl getUpdates)
+   - Lis dans `.cursor/MEMORIES.md` le dernier `update_id` traité (section « Dernier update_id »).
+     Si absent, utilise offset=0.
+   - Exécute :
+     ```bash
+     TOKEN="${TELEGRAM_BOT_TOKEN:-__TELEGRAM_BOT_TOKEN__}"
+     OFFSET="<dernier_update_id + 1>"
+     curl -s "https://api.telegram.org/bot${TOKEN}/getUpdates?offset=${OFFSET}&timeout=0"
+     ```
+   - Parse le JSON : pour chaque `result[].message.text`, cherche `VALIDÉ {slug}` ou `REFUSÉ {slug}`
+     (insensible à la casse, slug en kebab-case).
+   - Ignore les messages déjà dans MEMORIES.md section « Validations déjà traitées ».
+   - Si aucun nouveau message de commande → termine SILENCIEUSEMENT (pas de message Telegram).
 
 2. **Pour chaque commande VALIDÉ {slug}**
-   - Retrouve la PR ouverte correspondante (titre `[Brouillon] ...` contenant le slug, ou via le fichier `content/articles/{slug}.json`)
-   - Récupère/checkout la branche de cette PR (ne crée pas de nouvelle branche)
-   - Modifie le JSON :
+   - Retrouve la PR ouverte (titre `[Brouillon]` contenant le slug ou fichier `content/articles/{slug}.json`)
+   - Checkout la branche de la PR (ne crée PAS de nouvelle branche)
+   - Modifie `content/articles/{slug}.json` :
      - `"draft": false`
      - `"publishedAt"` = maintenant (ISO 8601 UTC)
-     - `"updatedAt"` = maintenant si le champ existe
-   - Merge la PR associée sur `main` (ou commit direct sur main si pas de PR)
-   - Envoie sur Telegram : `✅ Article « {title} » publié sur BlogIA`
-   - Retire l'entrée de la section « en attente » dans MEMORIES.md
-   - Ajoute le slug à la section « traités » avec timestamp
+     - `"updatedAt"` = maintenant
+   - Commit, push sur la branche courante (`git push origin HEAD`)
+   - Merge la PR sur `main`
+   - MCP send-message : `✅ Article « {title} » publié sur BlogIA`
+   - Mets à jour MEMORIES.md (retire « en attente », ajoute « traités », note update_id)
 
 3. **Pour chaque commande REFUSÉ {slug}**
-   - Retrouve la PR ouverte correspondante (titre `[Brouillon] ...` contenant le slug)
+   - Retrouve la PR ouverte correspondante
    - Ferme la PR sans merger (commentaire : « Refusé par l'éditeur via Telegram »)
-   - Le fichier `content/articles/{slug}.json` n'étant que sur la branche de la PR, il disparaît avec elle ; s'il a atterri sur `main`, supprime-le
-   - Envoie sur Telegram : `❌ Article « {slug} » refusé et supprimé`
-   - Retire l'entrée de MEMORIES.md
+   - MCP send-message : `❌ Article « {slug} » refusé et supprimé`
+   - Mets à jour MEMORIES.md
 
-4. **Si aucune commande en attente**
-   - Termine silencieusement sans action ni message
+4. **Après traitement**
+   - Enregistre le plus grand `update_id` vu dans MEMORIES.md (section « Dernier update_id »)
+   - Commit MEMORIES.md sur la branche courante si modifié
 
 ## Contraintes
-- Ne publier (`draft: false`) QUE sur commande explicite `VALIDÉ {slug}`
-- Ne jamais publier un article dont le slug ne correspond pas exactement à la commande
-- Un seul traitement par message (idempotence via MEMORIES.md)
-- En cas d'erreur (fichier introuvable, PR absente), envoie un message Telegram d'erreur explicite
+- Ne JAMAIS utiliser MCP pour lire les messages (getUpdates n'existe pas sur ce serveur)
+- Ne publier (`draft: false`) QUE sur `VALIDÉ {slug}` explicite
+- Un seul traitement par update_id (idempotence via MEMORIES.md)
+- Si aucune commande en attente : terminer sans envoyer de message
+- En cas d'erreur sur UNE commande : send-message avec le détail, continuer les autres
 ```
