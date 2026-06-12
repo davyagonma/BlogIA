@@ -84,17 +84,12 @@ ajoutez le serveur MCP Telegram :
 > Les automatisations cloud n'ont PAS accès à votre `.env` local : les variables
 > doivent être saisies dans l'UI de l'automatisation.
 
-## 6. Automatisation de validation — variable shell supplémentaire
+## 6. Automatisation de validation — token dans le PROMPT
 
-L'automatisation **Validation & publication** lit les messages via `curl getUpdates`.
-Le token MCP (`TELEGRAM_BOT_API_TOKEN`) n'est PAS accessible au shell du run cloud.
+⚠️ Les variables MCP ne sont PAS visibles par `curl` dans le shell cloud.
 
-Ajoute **en plus** dans les variables d'environnement de l'automatisation :
+Pour l'automatisation **Validation & publication** :
+1. Config MCP : seulement `TELEGRAM_BOT_API_TOKEN` (pour `send-message`)
+2. Dans le **prompt** : remplace `__BOT_TOKEN__` par ton token avant de sauvegarder
 
-| Variable | Valeur |
-|----------|--------|
-| `TELEGRAM_BOT_TOKEN` | même token que `TELEGRAM_BOT_API_TOKEN` |
-
-Sans cette variable, l'automatisation ne peut pas lire tes réponses `VALIDÉ` / `REFUSÉ`.
-
-Alternative : remplace `__TELEGRAM_BOT_TOKEN__` dans le prompt par ton token avant de sauvegarder.
+Ne mets PAS `TELEGRAM_BOT_TOKEN` dans la config MCP — ça ne sert à rien pour curl.
